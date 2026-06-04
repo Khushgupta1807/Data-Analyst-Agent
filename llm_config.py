@@ -1,8 +1,6 @@
 """
-LLM Configuration Module
-Auto-detects and configures the best available LLM:
-  1. Groq Cloud (if GROQ_API_KEY is set)
-  2. Ollama Local (if Ollama is running)
+LLM config — picks up Groq if the API key is available,
+otherwise tries Ollama as a fallback.
 """
 
 import os
@@ -10,59 +8,51 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Cache to avoid re-initializing on every call
 _cached_llm = None
 _cached_name = None
 
 
 def get_llm():
-    """
-    Returns a configured LangChain LLM instance.
-    Priority: Groq Cloud -> Ollama Local.
-    Results are cached after first successful call.
-    """
+    """Return a configured LLM instance. Caches after first call."""
     global _cached_llm, _cached_name
 
     if _cached_llm is not None:
         return _cached_llm, _cached_name
 
-    # --- Option 1: Groq Cloud ---
-    groq_api_key = os.environ.get("GROQ_API_KEY")
-    if groq_api_key:
+    # try groq first (cloud, fast)
+    groq_key = os.environ.get("GROQ_API_KEY")
+    if groq_key:
         try:
             from langchain_groq import ChatGroq
             llm = ChatGroq(
                 model="llama-3.3-70b-versatile",
-                api_key=groq_api_key,
+                api_key=groq_key,
                 temperature=0,
             )
-            llm_name = "Groq Cloud (llama-3.3-70b-versatile)"
-            print(f"[OK] LLM Active: {llm_name}")
-            _cached_llm, _cached_name = llm, llm_name
-            return llm, llm_name
+            name = "Groq Cloud (llama-3.3-70b-versatile)"
+            print(f"[OK] LLM Active: {name}")
+            _cached_llm, _cached_name = llm, name
+            return llm, name
         except Exception as e:
-            print(f"[WARN] Groq init failed: {e}. Falling back to Ollama...")
+            print(f"[WARN] Groq failed: {e}, trying Ollama...")
 
-    # --- Option 2: Ollama Local ---
-    print("[INFO] GROQ_API_KEY not found. Trying Ollama local...")
-
+    # fallback to local ollama
+    print("[INFO] No GROQ_API_KEY, trying Ollama...")
     try:
         from langchain_ollama import ChatOllama
         llm = ChatOllama(model="llama3.2:1b", temperature=0)
-        llm_name = "Ollama Local (llama3.2:1b)"
-        print(f"[OK] LLM Active: {llm_name}")
-        _cached_llm, _cached_name = llm, llm_name
-        return llm, llm_name
+        name = "Ollama Local (llama3.2:1b)"
+        print(f"[OK] LLM Active: {name}")
+        _cached_llm, _cached_name = llm, name
+        return llm, name
     except Exception as e:
-        print(f"[ERROR] Ollama LLM init failed: {e}")
+        print(f"[ERROR] Ollama failed too: {e}")
 
-    # --- No LLM available ---
     raise RuntimeError(
-        "No LLM backend available. Set GROQ_API_KEY or install Ollama."
+        "No LLM available — set GROQ_API_KEY or install Ollama"
     )
 
 
-# Run on import so the active LLM is printed at startup
 if __name__ == "__main__":
     llm, name = get_llm()
-    print(f"\nReady to use: {name}")
+    print(f"Ready: {name}")

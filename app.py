@@ -1,6 +1,5 @@
 """
-Autonomous Data Analyst Agent — Streamlit UI
-Upload a CSV, let the AI agent analyse it, and view charts + insights.
+Streamlit app — upload CSV, run the agent, see charts + report.
 """
 
 import os
@@ -8,23 +7,15 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 
-
-# ──────────────────────────────────────────────
-# Page Configuration
-# ──────────────────────────────────────────────
-
+# page config
 st.set_page_config(
-    page_title="Autonomous Data Analyst Agent",
+    page_title="Data Analyst Agent",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-
-# ──────────────────────────────────────────────
-# Custom Styling
-# ──────────────────────────────────────────────
-
+# styling
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -119,113 +110,89 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# ──────────────────────────────────────────────
-# Header
-# ──────────────────────────────────────────────
-
+# header
 st.markdown("""
 <div class="main-header">
-    <h1>📊 Autonomous Data Analyst Agent</h1>
-    <p>Upload a CSV file and let AI analyse your data, generate visualisations, and provide actionable insights</p>
+    <h1>📊 Data Analyst Agent</h1>
+    <p>Upload a CSV and let the agent analyse it — generates charts and a written report</p>
 </div>
 """, unsafe_allow_html=True)
 
-
-# ──────────────────────────────────────────────
-# Sidebar — API Key Input + LLM Status
-# ──────────────────────────────────────────────
-
+# sidebar
 with st.sidebar:
-    st.markdown("### ⚙️ Configuration")
+    st.markdown("### Settings")
 
-    # API key input — allows user to enter key right in the UI
     groq_key_input = st.text_input(
         "Groq API Key",
         value=os.environ.get("GROQ_API_KEY", ""),
         type="password",
-        help="Get a free key at https://console.groq.com",
+        help="Free key from console.groq.com",
         placeholder="gsk_...",
     )
 
-    # If user entered a key in the UI, set it in the environment
     if groq_key_input:
         os.environ["GROQ_API_KEY"] = groq_key_input
         st.markdown(
-            '<div class="llm-badge">🤖 Groq Cloud (llama-3.3-70b-versatile)</div>',
+            '<div class="llm-badge">Groq Cloud (llama-3.3-70b)</div>',
             unsafe_allow_html=True,
         )
         llm_available = True
     else:
         st.markdown(
-            '<div class="llm-badge-inactive">⚠️ No API Key</div>',
+            '<div class="llm-badge-inactive">No API Key</div>',
             unsafe_allow_html=True,
         )
         st.warning(
-            "**Enter your Groq API key above to enable the AI agent.** "
-            "Get a free key at [console.groq.com](https://console.groq.com)"
+            "Enter your Groq API key above. "
+            "Get a free one at [console.groq.com](https://console.groq.com)"
         )
         llm_available = False
 
     st.markdown("---")
-    st.markdown("### 📋 How It Works")
+    st.markdown("### How to use")
     st.markdown("""
-    1. **Enter** your Groq API key above
-    2. **Upload** your CSV dataset
-    3. **Preview** data statistics
-    4. **Click Analyse** to run the AI agent
-    5. **View** interactive charts & insights
+    1. Paste your Groq API key
+    2. Upload a CSV file
+    3. Click **Analyse**
+    4. Wait for the charts + report
     """)
     st.markdown("---")
-    st.markdown("### 🛠️ Powered By")
-    st.markdown("""
-    - 🦜 LangChain ReAct Agent
-    - 📊 Plotly Express
-    - 🧠 Groq Cloud LLM
-    """)
+    st.markdown(
+        "Built with LangChain, Plotly, Streamlit"
+    )
 
-
-# ──────────────────────────────────────────────
-# CSV Upload
-# ──────────────────────────────────────────────
-
+# main area
 uploaded_file = st.file_uploader(
-    "📁 Upload your CSV file",
+    "Upload your CSV file",
     type=["csv"],
-    help="Upload any CSV file to start the analysis"
+    help="Any CSV file works"
 )
 
 if uploaded_file is not None:
     try:
         df = pd.read_csv(uploaded_file)
-
-        # Save to disk so the agent can access it
         csv_path = uploaded_file.name
         df.to_csv(csv_path, index=False)
 
-        # --- Data Preview ---
-        st.markdown("### 🔍 Data Preview")
+        st.markdown("### Data Preview")
         st.dataframe(df.head(), use_container_width=True)
 
-        # --- Metric Cards ---
+        # metric cards
         col1, col2, col3 = st.columns(3)
-
         with col1:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-value">{df.shape[0]:,}</div>
-                <div class="metric-label">Total Rows</div>
+                <div class="metric-label">Rows</div>
             </div>
             """, unsafe_allow_html=True)
-
         with col2:
             st.markdown(f"""
             <div class="metric-card">
                 <div class="metric-value">{df.shape[1]}</div>
-                <div class="metric-label">Total Columns</div>
+                <div class="metric-label">Columns</div>
             </div>
             """, unsafe_allow_html=True)
-
         with col3:
             missing = df.isnull().sum().sum()
             st.markdown(f"""
@@ -237,28 +204,23 @@ if uploaded_file is not None:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # --- Analyse Button ---
-        if st.button("🚀 Analyse My Data", use_container_width=True):
-
+        if st.button("Analyse My Data", use_container_width=True):
             if not llm_available:
                 st.error(
-                    "❌ No LLM backend available. "
-                    "Enter your Groq API key in the sidebar to get started. "
-                    "Get a free key at https://console.groq.com"
+                    "No API key set. Enter your Groq key in the sidebar first."
                 )
             else:
-                with st.spinner("🧠 Agent is analysing your data... This may take a few minutes."):
+                with st.spinner("Running agent... this takes a minute or two"):
                     try:
                         from agent import run_agent
                         result = run_agent(csv_path, df)
 
-                        # --- Display Charts ---
-                        st.markdown("### 📈 Generated Visualisations")
-
+                        # show charts
+                        st.markdown("### Charts")
                         chart_titles = [
-                            "📊 Chart 1 — Distribution Analysis",
-                            "📉 Chart 2 — Relationship & Correlation",
-                            "📋 Chart 3 — Categorical Comparison",
+                            "Chart 1 — Distribution",
+                            "Chart 2 — Relationships",
+                            "Chart 3 — Comparison",
                         ]
 
                         charts = result.get("charts", [])
@@ -271,49 +233,47 @@ if uploaded_file is not None:
                                     st.markdown(f"#### {title}")
                                     components.html(chart_html, height=450, scrolling=True)
                         else:
-                            st.warning("⚠️ No charts were generated by the agent.")
+                            st.warning("No charts were generated.")
 
-                        # --- Insight Report ---
-                        st.markdown("### 💡 AI Insight Report")
-                        st.info(result.get("output", "No insights generated."))
+                        # insight report
+                        st.markdown("### Insight Report")
+                        st.info(result.get("output", "No output."))
 
-                        # --- Agent Thought Process ---
-                        with st.expander("🧠 Agent Thought Process (Raw)", expanded=False):
+                        # show agent reasoning
+                        with st.expander("Agent reasoning (raw steps)", expanded=False):
                             steps = result.get("intermediate_steps", [])
                             if steps:
                                 for i, step in enumerate(steps):
                                     st.markdown(f"**Step {i + 1}:**")
                                     if isinstance(step, tuple) and len(step) >= 2:
-                                        action, observation = step[0], step[1]
+                                        action, obs = step[0], step[1]
                                         st.markdown(f"**Action:** `{action.tool}`")
                                         st.code(action.tool_input, language="python")
-                                        st.markdown("**Observation:**")
-                                        st.code(str(observation)[:2000])
+                                        st.markdown("**Result:**")
+                                        st.code(str(obs)[:2000])
                                     else:
                                         st.text(str(step)[:2000])
                                     st.markdown("---")
                             else:
-                                st.text("No intermediate steps recorded.")
+                                st.text("No steps recorded.")
 
-                        st.success("✅ Analysis complete!")
+                        st.success("Done!")
 
                     except Exception as e:
-                        st.error(f"❌ Agent Error: {str(e)}")
+                        st.error(f"Error: {str(e)}")
                         import traceback
-                        with st.expander("🔍 Full Error Traceback"):
+                        with st.expander("Full traceback"):
                             st.code(traceback.format_exc())
 
     except Exception as e:
-        st.error(f"❌ Failed to read CSV file: {str(e)}")
-
+        st.error(f"Could not read CSV: {str(e)}")
 else:
-    # --- Welcome State ---
     st.markdown("""
     <div style="text-align: center; padding: 3rem 1rem; color: #a0a0b8;">
-        <h2 style="color: #667eea;">👆 Upload a CSV to get started</h2>
+        <h2 style="color: #667eea;">Upload a CSV to get started</h2>
         <p style="font-size: 1.1rem;">
-            The agent will automatically clean your data, generate 3 interactive Plotly charts,
-            and write a detailed insight report — all autonomously.
+            The agent will clean the data, build 3 interactive charts,
+            and write a summary report.
         </p>
     </div>
     """, unsafe_allow_html=True)

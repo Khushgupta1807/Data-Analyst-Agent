@@ -1,125 +1,75 @@
-# 📊 Autonomous Data Analyst Agent
+# Data Analyst Agent
 
-An AI-powered data analysis tool that autonomously cleans, visualises, and generates insights from any CSV dataset. Powered by **Groq Cloud** (Llama 3.3 70B) and **LangChain ReAct agents**.
+A tool that takes any CSV file and runs an LLM-powered agent to clean the data, build 3 Plotly charts, and write up a summary of what it found. Built with LangChain + Streamlit.
 
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Streamlit UI (app.py)              │
-│  ┌───────────┐  ┌──────────┐  ┌──────────────────┐  │
-│  │ CSV Upload│  │  Metric  │  │  Chart Display    │  │
-│  │ & Preview │  │  Cards   │  │  (Plotly HTML)    │  │
-│  └─────┬─────┘  └──────────┘  └──────────────────┘  │
-│        │                                             │
-│        ▼                                             │
-│  ┌─────────────────────────────────────────────┐     │
-│  │         Agent Executor (agent.py)           │     │
-│  │  ┌──────────────┐  ┌────────────────────┐   │     │
-│  │  │  ReAct Agent │  │  PythonREPL Tool   │   │     │
-│  │  │  (LangChain) │──│  (Code Execution)  │   │     │
-│  │  └──────┬───────┘  └────────────────────┘   │     │
-│  │         │                                   │     │
-│  │         ▼                                   │     │
-│  │  ┌──────────────────────────────────┐       │     │
-│  │  │     Groq Cloud (llm_config.py)   │       │     │
-│  │  │     Llama 3.3 70B Versatile      │       │     │
-│  │  └──────────────────────────────────┘       │     │
-│  └─────────────────────────────────────────────┘     │
-│                                                      │
-│  Output: 3 Plotly Charts + 300-word Insight Report   │
-└──────────────────────────────────────────────────────┘
-```
-
-## 📁 Project Structure
+## How it works
 
 ```
-data-analyst-agent/
-├── app.py              # Streamlit web interface with API key input
-├── agent.py            # LangChain ReAct agent logic
-├── llm_config.py       # LLM configuration (Groq Cloud)
-├── requirements.txt    # Python dependencies
-├── .env                # Environment variables (optional)
-├── .gitignore          # Git ignore rules
-└── README.md           # This file
+                    Streamlit UI (app.py)
+                         │
+                    Upload CSV file
+                         │
+                         ▼
+              Agent Executor (agent.py)
+              ┌──────────┬──────────┐
+              │ ReAct    │ Python   │
+              │ Agent    │ REPL     │
+              └────┬─────┴──────────┘
+                   │
+                   ▼
+            Groq Cloud API
+         (Llama 3.3 70B model)
+                   │
+                   ▼
+    3 Plotly charts + insight report
 ```
 
-## 🚀 Quick Start
+The agent uses the ReAct pattern — it thinks about what to do, writes Python code, runs it, checks the output, and repeats until it has 3 charts and a written report.
 
-### 1. Clone & Install
+## Setup
 
 ```bash
 git clone https://github.com/Khushgupta1807/Data-Analyst-Agent.git
 cd Data-Analyst-Agent
-python -m venv venv
 
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 
 pip install -r requirements.txt
 ```
 
-### 2. Get a Groq API Key (Free)
+You'll need a Groq API key (free):
+1. Sign up at [console.groq.com](https://console.groq.com)
+2. Create an API key
+3. You can paste it directly into the app sidebar, or put it in a `.env` file:
+   ```
+   GROQ_API_KEY=gsk_your_key_here
+   ```
 
-1. Go to [console.groq.com](https://console.groq.com)
-2. Sign up for a free account
-3. Navigate to **API Keys** and create a new key
-4. Copy the key — you'll paste it into the app
-
-> **Note:** Groq provides free API access with generous rate limits. No credit card required.
-
-### 3. Launch
+## Running
 
 ```bash
-streamlit run app.py --server.headless true
+streamlit run app.py
 ```
 
-Open `http://localhost:8501` in your browser.
+Then open `http://localhost:8501`, paste your API key in the sidebar, upload a CSV, and hit "Analyse".
 
-### 4. Use the App
+## Project structure
 
-1. Paste your **Groq API key** in the sidebar
-2. Upload any **CSV file**
-3. Preview the data and metrics
-4. Click **"🚀 Analyse My Data"**
-5. View the 3 interactive charts and insight report
-
-## 🎯 Features
-
-- **Groq Cloud LLM**: Uses Llama 3.3 70B via Groq for fast, high-quality analysis
-- **In-App API Key Input**: Enter your Groq key directly in the sidebar — no config files needed
-- **Smart Data Cleaning**: Handles missing values automatically
-- **3 Interactive Plotly Charts**: Distribution, Correlation, and Categorical Comparison
-- **AI Insight Report**: ~300-word summary with key findings and actionable recommendations
-- **Agent Transparency**: Expandable section showing the full reasoning process step by step
-- **Error Recovery**: Built-in error handling with detailed tracebacks
-
-## 🛠️ Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| LLM Framework | LangChain |
-| Agent Type | ReAct (Reasoning + Acting) |
-| Code Execution | PythonREPLTool |
-| Visualisation | Plotly Express |
-| Web UI | Streamlit |
-| LLM Provider | Groq Cloud (Llama 3.3 70B Versatile) |
-
-## 🔧 Configuration
-
-### Option A — In-App (Recommended)
-Paste your Groq API key directly into the sidebar input field when you launch the app.
-
-### Option B — Environment Variable
-Create a `.env` file in the project root:
 ```
-GROQ_API_KEY=gsk_your_key_here
+├── app.py              # Streamlit frontend
+├── agent.py            # LangChain agent + prompt
+├── llm_config.py       # Groq API setup
+├── requirements.txt
+├── .env                # API key goes here (not tracked by git)
+└── README.md
 ```
 
-The app will auto-detect the key on startup.
+## Tech used
 
-## 📝 License
-
-MIT License — free for personal and commercial use.
+- **LangChain** — ReAct agent framework
+- **Groq** — LLM inference (Llama 3.3 70B)
+- **Plotly Express** — interactive charts
+- **Streamlit** — web UI
+- **Pandas** — data handling

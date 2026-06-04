@@ -1,7 +1,6 @@
 """
-Autonomous Data Analyst Agent
-Uses LangChain ReAct agent with PythonREPLTool to analyse CSV data,
-generate Plotly charts, and produce insight reports.
+Main agent logic — builds a ReAct agent that can write + run Python code
+to analyse a CSV, create plotly charts, and produce an insight report.
 """
 
 import io
@@ -13,17 +12,10 @@ from langchain_core.prompts import PromptTemplate
 from llm_config import get_llm
 
 
-# ──────────────────────────────────────────────
-# Prompt Builder
-# ──────────────────────────────────────────────
+def build_prompt(csv_path, df_head, df_info, df_describe):
+    """Build the full ReAct prompt with dataset context baked in."""
 
-def build_prompt(csv_path: str, df_head: str, df_info: str, df_describe: str) -> PromptTemplate:
-    """
-    Constructs the system prompt that instructs the agent on
-    what analysis to perform and what output to produce.
-    """
-
-    system_instructions = f"""You are an expert data analyst. You have access to a Python REPL tool.
+    instructions = f"""You are an expert data analyst. You have access to a Python REPL tool.
 Your job is to analyse a CSV dataset and produce visualisations and insights.
 
 DATASET LOCATION: {csv_path}
@@ -72,7 +64,7 @@ RULES:
 - Do not ask for human input. Make all decisions yourself.
 """
 
-    react_template = """Answer the following questions as best you can. You have access to the following tools:
+    template = """Answer the following questions as best you can. You have access to the following tools:
 
 {tools}
 
@@ -89,51 +81,32 @@ Final Answer: the final answer to the original question
 
 Begin!
 
-Question: """ + system_instructions + """
+Question: """ + instructions + """
 Thought:{agent_scratchpad}"""
 
     return PromptTemplate(
         input_variables=["tools", "tool_names", "agent_scratchpad"],
-        template=react_template,
+        template=template,
     )
 
 
-# ──────────────────────────────────────────────
-# Agent Runner
-# ──────────────────────────────────────────────
-
-def run_agent(csv_path: str, df: pd.DataFrame) -> dict:
+def run_agent(csv_path, df):
     """
-    Runs the data-analysis agent on the given CSV.
-
-    Returns:
-        dict with keys:
-            - output: the insight report text
-            - intermediate_steps: raw agent reasoning steps
-            - charts: list of chart file paths that were generated
+    Run the analysis agent on a CSV file.
+    Returns dict with 'output', 'intermediate_steps', 'charts', 'llm_name'.
     """
-
-    # Capture df.info() as string
+    # grab dataset info as strings for the prompt
     buf = io.StringIO()
     df.info(buf=buf)
     df_info = buf.getvalue()
-
     df_head = df.head().to_string()
     df_describe = df.describe(include="all").to_string()
 
-    # Get LLM
     llm, llm_name = get_llm()
-
-    # Build prompt
     prompt = build_prompt(csv_path, df_head, df_info, df_describe)
-
-    # Tools
     tools = [PythonREPLTool()]
 
-    # Create ReAct agent
     agent = create_react_agent(llm=llm, tools=tools, prompt=prompt)
-
-    # Agent executor
     executor = AgentExecutor(
         agent=agent,
         tools=tools,
@@ -143,15 +116,10 @@ def run_agent(csv_path: str, df: pd.DataFrame) -> dict:
         return_intermediate_steps=True,
     )
 
-    # Run
     result = executor.invoke({"input": "Analyse the dataset"})
 
-    # Collect generated chart files
-    chart_files = []
-    for i in range(1, 4):
-        chart_path = f"chart{i}.html"
-        if os.path.exists(chart_path):
-            chart_files.append(chart_path)
+    # check which chart files got created
+    chart_files = [f"chart{i}.html" for i in range(1, 4) if os.path.exists(f"chart{i}.html")]
 
     return {
         "output": result.get("output", "No output generated."),
@@ -164,13 +132,14 @@ def run_agent(csv_path: str, df: pd.DataFrame) -> dict:
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python agent.py <path_to_csv>")
+        print("Usage: python agent.py <csv_file>")
         sys.exit(1)
+
     csv_file = sys.argv[1]
     dataframe = pd.read_csv(csv_file)
     result = run_agent(csv_file, dataframe)
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 50)
     print("INSIGHT REPORT")
-    print("=" * 60)
+    print("=" * 50)
     print(result["output"])
-    print(f"\nCharts generated: {result['charts']}")
+    print(f"\nCharts: {result['charts']}")
