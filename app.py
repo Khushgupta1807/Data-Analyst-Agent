@@ -1,5 +1,6 @@
 """
 Streamlit app — upload CSV, pick your LLM provider, run the agent.
+BI dashboard layout inspired by professional data analytics tools.
 """
 
 import os
@@ -16,10 +17,10 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* hide streamlit deploy button + menu */
-    .stDeployButton, #MainMenu, header[data-testid="stHeader"] {
+    /* hide streamlit defaults */
+    .stDeployButton, #MainMenu, header[data-testid="stHeader"], footer {
         display: none !important;
     }
 
@@ -27,108 +28,140 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
 
+    /* header banner */
     .main-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-        text-align: center;
-        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
     .main-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
+        font-size: 1.8rem;
+        font-weight: 800;
         margin: 0;
         color: white;
     }
     .main-header p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        margin-top: 0.5rem;
+        font-size: 0.95rem;
+        opacity: 0.85;
+        margin: 0.3rem 0 0 0;
         color: #e8e8e8;
     }
 
-    .metric-card {
-        background: linear-gradient(135deg, #1e1e2f 0%, #2d2d44 100%);
-        border: 1px solid rgba(102, 126, 234, 0.3);
+    /* KPI cards — top strip */
+    .kpi-card {
+        background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%);
+        border: 1px solid rgba(102, 126, 234, 0.25);
         border-radius: 12px;
-        padding: 1.5rem;
+        padding: 1rem 1.2rem;
         text-align: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
-    }
-    .metric-value {
-        font-size: 2.2rem;
-        font-weight: 700;
+    .kpi-value {
+        font-size: 1.9rem;
+        font-weight: 800;
         color: #667eea;
+        line-height: 1.2;
     }
-    .metric-label {
-        font-size: 0.9rem;
-        color: #a0a0b8;
-        margin-top: 0.3rem;
+    .kpi-label {
+        font-size: 0.75rem;
+        color: #8888a8;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.5px;
+        margin-top: 0.2rem;
     }
 
+    /* token optimization cards */
     .token-card {
-        background: linear-gradient(135deg, #0f3443 0%, #34e89e20 100%);
-        border: 1px solid rgba(52, 232, 158, 0.3);
+        background: linear-gradient(135deg, #0f3443 0%, #1a4a3a 100%);
+        border: 1px solid rgba(52, 232, 158, 0.25);
         border-radius: 12px;
-        padding: 1.2rem;
+        padding: 1rem 1.2rem;
         text-align: center;
     }
     .token-value {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: #34e89e;
+        line-height: 1.2;
     }
     .token-label {
-        font-size: 0.8rem;
-        color: #a0a0b8;
-        margin-top: 0.2rem;
+        font-size: 0.7rem;
+        color: #8888a8;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 1.2px;
+        margin-top: 0.2rem;
     }
 
+    /* chart containers */
+    .chart-box {
+        background: #1e1e2f;
+        border: 1px solid rgba(102, 126, 234, 0.15);
+        border-radius: 12px;
+        padding: 0.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    /* section titles */
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #c0c0d8;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin: 1.2rem 0 0.8rem 0;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    }
+
+    /* sidebar badges */
     .llm-badge {
         display: inline-block;
         background: linear-gradient(135deg, #00c9ff 0%, #92fe9d 100%);
         color: #1e1e2f;
-        padding: 0.4rem 1.2rem;
+        padding: 0.35rem 1rem;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
     }
-
     .llm-badge-inactive {
         display: inline-block;
         background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
         color: white;
-        padding: 0.4rem 1.2rem;
+        padding: 0.35rem 1rem;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
-        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
     }
 
+    /* analyse button */
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
         border-radius: 10px;
-        padding: 0.75rem 2.5rem;
-        font-size: 1.1rem;
-        font-weight: 600;
+        padding: 0.7rem 2rem;
+        font-size: 1rem;
+        font-weight: 700;
         transition: all 0.3s ease;
         width: 100%;
+        letter-spacing: 0.5px;
     }
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    /* data table styling */
+    .dataframe-container {
+        background: #1e1e2f;
+        border-radius: 12px;
+        padding: 0.8rem;
+        border: 1px solid rgba(102, 126, 234, 0.15);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -136,13 +169,15 @@ st.markdown("""
 # header
 st.markdown("""
 <div class="main-header">
-    <h1>📊 Data Analyst Agent</h1>
-    <p>Upload a CSV and let the agent analyse it — works with Groq, OpenAI, Gemini, or Claude</p>
+    <div>
+        <h1>📊 Data Analyst Agent</h1>
+        <p>Upload a CSV — get charts, insights, and token analytics</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# sidebar — provider selection
-from llm_config import PROVIDERS, get_llm, detect_provider
+# sidebar
+from llm_config import PROVIDERS, get_llm
 
 with st.sidebar:
     st.markdown("### LLM Provider")
@@ -151,63 +186,43 @@ with st.sidebar:
         "Choose provider",
         list(PROVIDERS.keys()),
         index=0,
-        help="Pick which LLM to use for analysis",
     )
-
     provider_config = PROVIDERS[provider]
 
     api_key = st.text_input(
         f"{provider} API Key",
         type="password",
         placeholder=f"{provider_config['key_prefix']}...",
-        help=f"Enter your {provider} API key",
     )
 
-    model = st.selectbox(
-        "Model",
-        provider_config["models"],
-        index=0,
-    )
+    model = st.selectbox("Model", provider_config["models"], index=0)
 
     if api_key:
-        st.markdown(
-            f'<div class="llm-badge">{provider} ({model})</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(f'<div class="llm-badge">{provider} ({model})</div>', unsafe_allow_html=True)
         llm_available = True
     else:
-        st.markdown(
-            '<div class="llm-badge-inactive">No API Key</div>',
-            unsafe_allow_html=True,
-        )
-        st.info(
-            "Enter your API key above to get started."
-        )
+        st.markdown('<div class="llm-badge-inactive">No API Key</div>', unsafe_allow_html=True)
+        st.info("Enter your API key above.")
         llm_available = False
 
     st.markdown("---")
     st.markdown("### How to use")
     st.markdown("""
-    1. Pick a provider & paste your key
-    2. Upload a CSV file
+    1. Pick a provider & paste key
+    2. Upload a CSV
     3. Click **Analyse**
-    4. Get charts + report + token stats
     """)
     st.markdown("---")
-    st.markdown("### Free API keys")
+    st.markdown("### Free keys")
     st.markdown("""
-    - [Groq](https://console.groq.com) — free tier
-    - [OpenAI](https://platform.openai.com) — pay-as-you-go
-    - [Google Gemini](https://aistudio.google.com) — free tier
-    - [Anthropic](https://console.anthropic.com) — pay-as-you-go
+    - [Groq](https://console.groq.com) — free
+    - [Gemini](https://aistudio.google.com) — free
+    - [OpenAI](https://platform.openai.com)
+    - [Anthropic](https://console.anthropic.com)
     """)
 
 # main area
-uploaded_file = st.file_uploader(
-    "Upload your CSV file",
-    type=["csv"],
-    help="Any CSV file works"
-)
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file is not None:
     try:
@@ -215,148 +230,146 @@ if uploaded_file is not None:
         csv_path = uploaded_file.name
         df.to_csv(csv_path, index=False)
 
-        st.markdown("### Data Preview")
-        st.dataframe(df.head(), use_container_width=True)
+        # --- KPI strip (like the reference dashboard top row) ---
+        num_cols = len(df.select_dtypes(include=["number"]).columns)
+        cat_cols = len(df.select_dtypes(include=["object", "category"]).columns)
+        missing = df.isnull().sum().sum()
+        missing_pct = round((missing / (df.shape[0] * df.shape[1])) * 100, 1)
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{df.shape[0]:,}</div>
-                <div class="metric-label">Rows</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{df.shape[1]}</div>
-                <div class="metric-label">Columns</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            missing = df.isnull().sum().sum()
-            st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-value">{missing:,}</div>
-                <div class="metric-label">Missing Values</div>
-            </div>
-            """, unsafe_allow_html=True)
+        k1, k2, k3, k4, k5 = st.columns(5)
+        with k1:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{df.shape[0]:,}</div>
+                <div class="kpi-label">Rows</div>
+            </div>""", unsafe_allow_html=True)
+        with k2:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{df.shape[1]}</div>
+                <div class="kpi-label">Columns</div>
+            </div>""", unsafe_allow_html=True)
+        with k3:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{num_cols}</div>
+                <div class="kpi-label">Numeric</div>
+            </div>""", unsafe_allow_html=True)
+        with k4:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{cat_cols}</div>
+                <div class="kpi-label">Categorical</div>
+            </div>""", unsafe_allow_html=True)
+        with k5:
+            st.markdown(f"""<div class="kpi-card">
+                <div class="kpi-value">{missing_pct}%</div>
+                <div class="kpi-label">Missing</div>
+            </div>""", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        # data preview in a styled container
+        st.markdown('<div class="section-title">Data Preview</div>', unsafe_allow_html=True)
+        st.dataframe(df.head(5), use_container_width=True, height=200)
 
+        # analyse button
         if st.button("Analyse My Data", use_container_width=True):
             if not llm_available:
-                st.error("No API key set. Pick a provider and enter your key in the sidebar.")
+                st.error("No API key set. Pick a provider in the sidebar.")
             else:
                 with st.spinner(f"Running agent with {provider} ({model})..."):
                     try:
-                        # init LLM with selected provider
                         llm, llm_name = get_llm(provider, api_key, model)
-
                         from agent import run_agent
                         result = run_agent(csv_path, df, llm, llm_name, provider=provider)
 
-                        # --- token optimization panel ---
-                        st.markdown("### Token Optimization")
+                        # --- TOKEN OPTIMIZATION (before/after strip) ---
+                        st.markdown('<div class="section-title">Token Optimization</div>', unsafe_allow_html=True)
                         comp = result.get("compression", {})
                         tok = result.get("token_stats", {})
 
-                        # row 1: compression before/after
                         raw_tk = comp.get('raw_context_tokens', 0)
                         comp_tk = comp.get('compressed_context_tokens', 0)
-                        saved = comp.get('tokens_saved', 0)
                         pct = comp.get('compression_pct', 0)
 
-                        opt1, opt2, opt3 = st.columns(3)
-                        with opt1:
-                            st.markdown(f"""
-                            <div class="token-card">
-                                <div class="token-value" style="color:#ff6b6b; text-decoration:line-through;">{raw_tk:,}</div>
-                                <div class="token-label">Before Compression</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with opt2:
-                            st.markdown(f"""
-                            <div class="token-card">
+                        o1, o2, o3, o4, o5, o6 = st.columns(6)
+                        with o1:
+                            st.markdown(f"""<div class="token-card">
+                                <div class="token-value" style="color:#ff6b6b;text-decoration:line-through;">{raw_tk:,}</div>
+                                <div class="token-label">Before</div>
+                            </div>""", unsafe_allow_html=True)
+                        with o2:
+                            st.markdown(f"""<div class="token-card">
                                 <div class="token-value">{comp_tk:,}</div>
-                                <div class="token-label">After Compression</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with opt3:
-                            st.markdown(f"""
-                            <div class="token-card">
+                                <div class="token-label">After</div>
+                            </div>""", unsafe_allow_html=True)
+                        with o3:
+                            st.markdown(f"""<div class="token-card">
                                 <div class="token-value">{pct}%</div>
-                                <div class="token-label">Tokens Saved</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-
-                        # row 2: runtime token usage
-                        st.markdown("### Token Usage")
-                        tc1, tc2, tc3, tc4 = st.columns(4)
-                        with tc1:
-                            st.markdown(f"""
-                            <div class="token-card">
-                                <div class="token-value">{tok.get('total_input_tokens', 0):,}</div>
-                                <div class="token-label">Input Tokens</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with tc2:
-                            st.markdown(f"""
-                            <div class="token-card">
-                                <div class="token-value">{tok.get('total_output_tokens', 0):,}</div>
-                                <div class="token-label">Output Tokens</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with tc3:
-                            st.markdown(f"""
-                            <div class="token-card">
-                                <div class="token-value">{tok.get('num_llm_calls', 0)}</div>
-                                <div class="token-label">LLM Calls</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        with tc4:
+                                <div class="token-label">Saved</div>
+                            </div>""", unsafe_allow_html=True)
+                        with o4:
+                            st.markdown(f"""<div class="token-card">
+                                <div class="token-value">{tok.get('total_input_tokens',0):,}</div>
+                                <div class="token-label">Input Tok</div>
+                            </div>""", unsafe_allow_html=True)
+                        with o5:
+                            st.markdown(f"""<div class="token-card">
+                                <div class="token-value">{tok.get('total_output_tokens',0):,}</div>
+                                <div class="token-label">Output Tok</div>
+                            </div>""", unsafe_allow_html=True)
+                        with o6:
                             cost = tok.get('estimated_cost_usd', 0)
-                            st.markdown(f"""
-                            <div class="token-card">
+                            st.markdown(f"""<div class="token-card">
                                 <div class="token-value">${cost:.4f}</div>
-                                <div class="token-label">Est. Cost ({provider})</div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                                <div class="token-label">Cost ({provider})</div>
+                            </div>""", unsafe_allow_html=True)
 
-                        # expandable per-step breakdown
-                        with st.expander("Per-step token breakdown"):
+                        # per-step breakdown
+                        with st.expander(f"Per-step breakdown ({tok.get('num_llm_calls',0)} LLM calls)"):
                             steps_data = tok.get("per_step", [])
                             if steps_data:
-                                st.markdown("**Per-step token usage:**")
-                                step_df = pd.DataFrame(steps_data)
-                                st.dataframe(step_df, use_container_width=True)
+                                st.dataframe(pd.DataFrame(steps_data), use_container_width=True)
+                            else:
+                                st.text("No per-step data.")
 
-                        # charts
-                        st.markdown("### Charts")
-                        chart_titles = [
-                            "Chart 1 — Distribution",
-                            "Chart 2 — Relationships",
-                            "Chart 3 — Comparison",
-                        ]
-
+                        # --- CHARTS in 2-column grid ---
+                        st.markdown('<div class="section-title">Visualizations</div>', unsafe_allow_html=True)
                         charts = result.get("charts", [])
+
                         if charts:
-                            for idx, chart_file in enumerate(charts):
-                                if os.path.exists(chart_file):
-                                    with open(chart_file, "r", encoding="utf-8") as f:
-                                        chart_html = f.read()
-                                    title = chart_titles[idx] if idx < len(chart_titles) else f"Chart {idx+1}"
-                                    st.markdown(f"#### {title}")
-                                    components.html(chart_html, height=450, scrolling=True)
+                            # 2-column layout for first 2 charts
+                            if len(charts) >= 2:
+                                left, right = st.columns(2)
+                                with left:
+                                    if os.path.exists(charts[0]):
+                                        with open(charts[0], "r", encoding="utf-8") as f:
+                                            st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+                                            components.html(f.read(), height=400, scrolling=False)
+                                            st.markdown('</div>', unsafe_allow_html=True)
+                                with right:
+                                    if os.path.exists(charts[1]):
+                                        with open(charts[1], "r", encoding="utf-8") as f:
+                                            st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+                                            components.html(f.read(), height=400, scrolling=False)
+                                            st.markdown('</div>', unsafe_allow_html=True)
+
+                            # 3rd chart full width
+                            if len(charts) >= 3 and os.path.exists(charts[2]):
+                                with open(charts[2], "r", encoding="utf-8") as f:
+                                    st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+                                    components.html(f.read(), height=400, scrolling=False)
+                                    st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             st.warning("No charts were generated.")
 
-                        # insight report
-                        st.markdown("### Insight Report")
+                        # --- INSIGHT REPORT ---
+                        st.markdown('<div class="section-title">Insight Report</div>', unsafe_allow_html=True)
                         st.info(result.get("output", "No output."))
 
+                        # --- DATA TABLE (like the reference dashboard bottom) ---
+                        st.markdown('<div class="section-title">Dataset Summary</div>', unsafe_allow_html=True)
+                        summary_df = df.describe(include="all").T
+                        summary_df.index.name = "Column"
+                        st.dataframe(summary_df, use_container_width=True, height=300)
+
                         # agent reasoning
-                        with st.expander("Agent reasoning (raw steps)", expanded=False):
+                        with st.expander("Agent reasoning (raw steps)"):
                             steps = result.get("intermediate_steps", [])
                             if steps:
                                 for i, step in enumerate(steps):
@@ -373,7 +386,7 @@ if uploaded_file is not None:
                             else:
                                 st.text("No steps recorded.")
 
-                        st.success("Done!")
+                        st.success("Analysis complete!")
 
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
@@ -385,11 +398,10 @@ if uploaded_file is not None:
         st.error(f"Could not read CSV: {str(e)}")
 else:
     st.markdown("""
-    <div style="text-align: center; padding: 3rem 1rem; color: #a0a0b8;">
-        <h2 style="color: #667eea;">Upload a CSV to get started</h2>
-        <p style="font-size: 1.1rem;">
-            Pick your LLM provider in the sidebar, upload a CSV,
-            and let the agent do the rest.
+    <div style="text-align: center; padding: 4rem 1rem; color: #8888a8;">
+        <h2 style="color: #667eea; font-weight: 800;">Upload a CSV to get started</h2>
+        <p style="font-size: 1rem;">
+            Pick your LLM provider, upload a dataset, and the agent handles the rest.
         </p>
     </div>
     """, unsafe_allow_html=True)

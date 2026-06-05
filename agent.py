@@ -75,18 +75,40 @@ YOUR TASK (follow these steps in order):
 
 2. Clean the data: handle missing values (drop or fill as appropriate).
 
-3. Create exactly 3 Plotly Express charts showing the most interesting patterns:
-   - Chart 1: distribution/histogram
-   - Chart 2: relationship/correlation (scatter, bar, etc.)
-   - Chart 3: categorical comparison
+3. Create exactly 3 Plotly charts showing the most interesting patterns.
+   Use plotly.express AND plotly.graph_objects for styling.
+   
+   Choose chart types that best fit the data, for example:
+   - Donut/pie chart for composition
+   - Horizontal bar chart for rankings/comparisons
+   - Line or area chart for trends
+   - Scatter plot for correlations
+   - Grouped bar chart for category comparisons
+
+   IMPORTANT STYLING — apply this to EVERY chart:
+   ```python
+   import plotly.express as px
+   import plotly.graph_objects as go
+   
+   # After creating each figure, apply this styling:
+   fig.update_layout(
+       template="plotly_dark",
+       paper_bgcolor="rgba(30,30,47,1)",
+       plot_bgcolor="rgba(30,30,47,1)",
+       font=dict(family="Inter, sans-serif", color="#e0e0e0"),
+       title=dict(font=dict(size=18, color="white")),
+       margin=dict(l=40, r=40, t=60, b=40),
+       legend=dict(bgcolor="rgba(0,0,0,0)"),
+   )
+   # Use these colors: ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166"]
+   ```
 
    Save them as:
    ```python
-   fig.write_html("chart1.html")
-   fig.write_html("chart2.html")
-   fig.write_html("chart3.html")
+   fig.write_html("chart1.html", include_plotlyjs="cdn")
+   fig.write_html("chart2.html", include_plotlyjs="cdn")
+   fig.write_html("chart3.html", include_plotlyjs="cdn")
    ```
-   Use plotly.express only. No matplotlib.
 
 4. Print a final insight report (~300 words) covering:
    - Key findings
@@ -94,7 +116,8 @@ YOUR TASK (follow these steps in order):
    - Recommendations
 
 RULES:
-- Use `import plotly.express as px` only. Never matplotlib.
+- Use plotly.express and plotly.graph_objects. Never matplotlib.
+- Apply the dark styling above to ALL charts.
 - Save charts with `fig.write_html()`.
 - Final answer = only the insight report text, no code.
 - If you hit an error, debug and retry.
