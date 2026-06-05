@@ -75,15 +75,17 @@ YOUR TASK (follow these steps in order):
 
 2. Clean the data: handle missing values (drop or fill as appropriate).
 
-3. Create exactly 5 Plotly charts showing the most interesting patterns.
+3. Create exactly 7 Plotly charts showing the most interesting patterns.
    Use plotly.express AND plotly.graph_objects for styling.
    
    Choose chart types that best fit the data. Use DIFFERENT types:
-   - Chart 1: Donut/pie chart for composition
+   - Chart 1: Donut/pie chart for composition (e.g. category distribution)
    - Chart 2: Horizontal bar chart for rankings/comparisons
-   - Chart 3: Scatter plot or heatmap for correlations
-   - Chart 4: Line or area chart for trends (or grouped bar)
-   - Chart 5: Treemap, sunburst, or box plot for deeper analysis
+   - Chart 3: Scatter plot for correlations between two numeric columns
+   - Chart 4: Heatmap showing correlation matrix of numeric columns
+   - Chart 5: Line or area chart for trends (or grouped bar chart)
+   - Chart 6: Box plot or violin plot for distribution analysis
+   - Chart 7: Treemap, sunburst, or histogram for deeper analysis
 
    IMPORTANT STYLING — apply this to EVERY chart:
    ```python
@@ -100,7 +102,7 @@ YOUR TASK (follow these steps in order):
        margin=dict(l=40, r=40, t=60, b=40),
        legend=dict(bgcolor="rgba(0,0,0,0)"),
    )
-   # Use these colors: ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166"]
+   # Use these colors: ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166", "#ff6b6b"]
    ```
 
    Save them as:
@@ -110,6 +112,8 @@ YOUR TASK (follow these steps in order):
    fig.write_html("chart3.html", include_plotlyjs="cdn")
    fig.write_html("chart4.html", include_plotlyjs="cdn")
    fig.write_html("chart5.html", include_plotlyjs="cdn")
+   fig.write_html("chart6.html", include_plotlyjs="cdn")
+   fig.write_html("chart7.html", include_plotlyjs="cdn")
    ```
 
 4. Print a final insight report (~300 words) covering:
@@ -193,7 +197,7 @@ def run_agent(csv_path, df, llm, llm_name, provider="Groq"):
         config={"callbacks": [tracker]},
     )
 
-    chart_files = [f"chart{i}.html" for i in range(1, 6) if os.path.exists(f"chart{i}.html")]
+    chart_files = [f"chart{i}.html" for i in range(1, 8) if os.path.exists(f"chart{i}.html")]
 
     return {
         "output": result.get("output", "No output generated."),

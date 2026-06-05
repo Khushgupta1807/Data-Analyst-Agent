@@ -64,6 +64,7 @@ st.markdown("""
         font-weight: 800;
         color: #667eea;
         line-height: 1.2;
+        text-decoration: none !important;
     }
     .kpi-label {
         font-size: 0.75rem;
@@ -86,6 +87,10 @@ st.markdown("""
         font-weight: 700;
         color: #34e89e;
         line-height: 1.2;
+        text-decoration: none !important;
+    }
+    .kpi-card *, .token-card * {
+        text-decoration: none !important;
     }
     .token-label {
         font-size: 0.7rem;
