@@ -18,6 +18,11 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+    /* hide streamlit deploy button + menu */
+    .stDeployButton, #MainMenu, header[data-testid="stHeader"] {
+        display: none !important;
+    }
+
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
     }
@@ -249,26 +254,57 @@ if uploaded_file is not None:
                         llm, llm_name = get_llm(provider, api_key, model)
 
                         from agent import run_agent
-                        result = run_agent(csv_path, df, llm, llm_name)
+                        result = run_agent(csv_path, df, llm, llm_name, provider=provider)
 
-                        # token usage panel
-                        st.markdown("### Token Usage & Optimization")
+                        # --- token optimization panel ---
+                        st.markdown("### Token Optimization")
                         comp = result.get("compression", {})
                         tok = result.get("token_stats", {})
 
+                        # row 1: compression before/after
+                        raw_tk = comp.get('raw_context_tokens', 0)
+                        comp_tk = comp.get('compressed_context_tokens', 0)
+                        saved = comp.get('tokens_saved', 0)
+                        pct = comp.get('compression_pct', 0)
+
+                        opt1, opt2, opt3 = st.columns(3)
+                        with opt1:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value" style="color:#ff6b6b; text-decoration:line-through;">{raw_tk:,}</div>
+                                <div class="token-label">Before Compression</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with opt2:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">{comp_tk:,}</div>
+                                <div class="token-label">After Compression</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with opt3:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">{pct}%</div>
+                                <div class="token-label">Tokens Saved</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                        # row 2: runtime token usage
+                        st.markdown("### Token Usage")
                         tc1, tc2, tc3, tc4 = st.columns(4)
                         with tc1:
                             st.markdown(f"""
                             <div class="token-card">
-                                <div class="token-value">{comp.get('compression_pct', 0)}%</div>
-                                <div class="token-label">Prompt Compressed</div>
+                                <div class="token-value">{tok.get('total_input_tokens', 0):,}</div>
+                                <div class="token-label">Input Tokens</div>
                             </div>
                             """, unsafe_allow_html=True)
                         with tc2:
                             st.markdown(f"""
                             <div class="token-card">
-                                <div class="token-value">{tok.get('total_tokens', 0):,}</div>
-                                <div class="token-label">Total Tokens</div>
+                                <div class="token-value">{tok.get('total_output_tokens', 0):,}</div>
+                                <div class="token-label">Output Tokens</div>
                             </div>
                             """, unsafe_allow_html=True)
                         with tc3:
@@ -283,24 +319,12 @@ if uploaded_file is not None:
                             st.markdown(f"""
                             <div class="token-card">
                                 <div class="token-value">${cost:.4f}</div>
-                                <div class="token-label">Est. Cost</div>
+                                <div class="token-label">Est. Cost ({provider})</div>
                             </div>
                             """, unsafe_allow_html=True)
 
-                        with st.expander("Compression details"):
-                            raw_tk = comp.get('raw_context_tokens', 0)
-                            comp_tk = comp.get('compressed_context_tokens', 0)
-                            saved = comp.get('tokens_saved', 0)
-
-                            st.markdown(f"""
-                            | Metric | Value |
-                            |--------|-------|
-                            | Raw context tokens | {raw_tk:,} |
-                            | After compression | {comp_tk:,} |
-                            | Tokens saved | {saved:,} |
-                            | Compression ratio | **{comp.get('compression_pct', 0)}%** |
-                            """)
-
+                        # expandable per-step breakdown
+                        with st.expander("Per-step token breakdown"):
                             steps_data = tok.get("per_step", [])
                             if steps_data:
                                 st.markdown("**Per-step token usage:**")

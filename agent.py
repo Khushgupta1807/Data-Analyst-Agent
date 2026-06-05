@@ -127,7 +127,7 @@ Thought:{agent_scratchpad}"""
     )
 
 
-def run_agent(csv_path, df, llm, llm_name):
+def run_agent(csv_path, df, llm, llm_name, provider="Groq"):
     """
     Run the analysis agent on a CSV file.
     Takes llm and llm_name directly (provider chosen in the UI).
@@ -151,7 +151,7 @@ def run_agent(csv_path, df, llm, llm_name):
 
     prompt = build_prompt(csv_path, comp_head, comp_info, comp_describe)
     tools = [PythonREPLTool()]
-    tracker = TokenTracker()
+    tracker = TokenTracker(provider=provider)
 
     agent = create_react_agent(llm=llm, tools=tools, prompt=prompt)
     executor = AgentExecutor(
