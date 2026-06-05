@@ -1,5 +1,5 @@
 """
-Streamlit app — upload CSV, run the agent, see charts + report.
+Streamlit app — upload CSV, run the agent, see charts + report + token stats.
 """
 
 import os
@@ -66,6 +66,26 @@ st.markdown("""
         font-size: 0.9rem;
         color: #a0a0b8;
         margin-top: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .token-card {
+        background: linear-gradient(135deg, #0f3443 0%, #34e89e20 100%);
+        border: 1px solid rgba(52, 232, 158, 0.3);
+        border-radius: 12px;
+        padding: 1.2rem;
+        text-align: center;
+    }
+    .token-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #34e89e;
+    }
+    .token-label {
+        font-size: 0.8rem;
+        color: #a0a0b8;
+        margin-top: 0.2rem;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
@@ -215,6 +235,64 @@ if uploaded_file is not None:
                         from agent import run_agent
                         result = run_agent(csv_path, df)
 
+                        # --- token usage & compression panel ---
+                        st.markdown("### Token Usage & Optimization")
+                        comp = result.get("compression", {})
+                        tok = result.get("token_stats", {})
+
+                        tc1, tc2, tc3, tc4 = st.columns(4)
+                        with tc1:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">{comp.get('compression_pct', 0)}%</div>
+                                <div class="token-label">Prompt Compressed</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with tc2:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">{tok.get('total_tokens', 0):,}</div>
+                                <div class="token-label">Total Tokens</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with tc3:
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">{tok.get('num_llm_calls', 0)}</div>
+                                <div class="token-label">LLM Calls</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with tc4:
+                            cost = tok.get('estimated_cost_usd', 0)
+                            st.markdown(f"""
+                            <div class="token-card">
+                                <div class="token-value">${cost:.4f}</div>
+                                <div class="token-label">Est. Cost</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                        # compression detail in expander
+                        with st.expander("Compression details"):
+                            raw_tk = comp.get('raw_context_tokens', 0)
+                            comp_tk = comp.get('compressed_context_tokens', 0)
+                            saved = comp.get('tokens_saved', 0)
+
+                            st.markdown(f"""
+                            | Metric | Value |
+                            |--------|-------|
+                            | Raw context tokens | {raw_tk:,} |
+                            | After compression | {comp_tk:,} |
+                            | Tokens saved | {saved:,} |
+                            | Compression ratio | **{comp.get('compression_pct', 0)}%** |
+                            """)
+
+                            # per-step token breakdown
+                            steps_data = tok.get("per_step", [])
+                            if steps_data:
+                                st.markdown("**Per-step token usage:**")
+                                step_df = pd.DataFrame(steps_data)
+                                st.dataframe(step_df, use_container_width=True)
+
                         # show charts
                         st.markdown("### Charts")
                         chart_titles = [
@@ -239,7 +317,7 @@ if uploaded_file is not None:
                         st.markdown("### Insight Report")
                         st.info(result.get("output", "No output."))
 
-                        # show agent reasoning
+                        # agent reasoning
                         with st.expander("Agent reasoning (raw steps)", expanded=False):
                             steps = result.get("intermediate_steps", [])
                             if steps:
