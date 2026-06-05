@@ -337,6 +337,14 @@ if uploaded_file is not None:
                         st.markdown('<div class="section-title">Visualizations</div>', unsafe_allow_html=True)
                         charts = result.get("charts", [])
 
+                        def fix_chart_html(html_content, px_height=430):
+                            """Inject CSS to force Plotly chart to fill the iframe height."""
+                            size_fix = f"""<style>
+                                html, body {{ margin:0; padding:0; height:{px_height}px; overflow:hidden; }}
+                                .plotly-graph-div {{ height:{px_height}px !important; width:100% !important; }}
+                            </style>"""
+                            return html_content.replace("<head>", f"<head>{size_fix}", 1)
+
                         if charts:
                             # display charts in pairs (2-column grid)
                             for i in range(0, len(charts), 2):
@@ -347,20 +355,20 @@ if uploaded_file is not None:
                                         if os.path.exists(charts[i]):
                                             with open(charts[i], "r", encoding="utf-8") as f:
                                                 st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-                                                components.html(f.read(), height=400, scrolling=False)
+                                                components.html(fix_chart_html(f.read(), 430), height=450, scrolling=False)
                                                 st.markdown('</div>', unsafe_allow_html=True)
                                     with right:
                                         if os.path.exists(charts[i + 1]):
                                             with open(charts[i + 1], "r", encoding="utf-8") as f:
                                                 st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-                                                components.html(f.read(), height=400, scrolling=False)
+                                                components.html(fix_chart_html(f.read(), 430), height=450, scrolling=False)
                                                 st.markdown('</div>', unsafe_allow_html=True)
                                 else:
                                     # last chart full width if odd number
                                     if os.path.exists(charts[i]):
                                         with open(charts[i], "r", encoding="utf-8") as f:
                                             st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-                                            components.html(f.read(), height=400, scrolling=False)
+                                            components.html(fix_chart_html(f.read(), 480), height=500, scrolling=False)
                                             st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             st.warning("No charts were generated.")
