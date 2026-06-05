@@ -75,15 +75,15 @@ YOUR TASK (follow these steps in order):
 
 2. Clean the data: handle missing values (drop or fill as appropriate).
 
-3. Create exactly 3 Plotly charts showing the most interesting patterns.
+3. Create exactly 5 Plotly charts showing the most interesting patterns.
    Use plotly.express AND plotly.graph_objects for styling.
    
-   Choose chart types that best fit the data, for example:
-   - Donut/pie chart for composition
-   - Horizontal bar chart for rankings/comparisons
-   - Line or area chart for trends
-   - Scatter plot for correlations
-   - Grouped bar chart for category comparisons
+   Choose chart types that best fit the data. Use DIFFERENT types:
+   - Chart 1: Donut/pie chart for composition
+   - Chart 2: Horizontal bar chart for rankings/comparisons
+   - Chart 3: Scatter plot or heatmap for correlations
+   - Chart 4: Line or area chart for trends (or grouped bar)
+   - Chart 5: Treemap, sunburst, or box plot for deeper analysis
 
    IMPORTANT STYLING — apply this to EVERY chart:
    ```python
@@ -108,6 +108,8 @@ YOUR TASK (follow these steps in order):
    fig.write_html("chart1.html", include_plotlyjs="cdn")
    fig.write_html("chart2.html", include_plotlyjs="cdn")
    fig.write_html("chart3.html", include_plotlyjs="cdn")
+   fig.write_html("chart4.html", include_plotlyjs="cdn")
+   fig.write_html("chart5.html", include_plotlyjs="cdn")
    ```
 
 4. Print a final insight report (~300 words) covering:
@@ -181,7 +183,7 @@ def run_agent(csv_path, df, llm, llm_name, provider="Groq"):
         agent=agent,
         tools=tools,
         handle_parsing_errors=True,
-        max_iterations=15,
+        max_iterations=20,
         verbose=True,
         return_intermediate_steps=True,
     )
@@ -191,7 +193,7 @@ def run_agent(csv_path, df, llm, llm_name, provider="Groq"):
         config={"callbacks": [tracker]},
     )
 
-    chart_files = [f"chart{i}.html" for i in range(1, 4) if os.path.exists(f"chart{i}.html")]
+    chart_files = [f"chart{i}.html" for i in range(1, 6) if os.path.exists(f"chart{i}.html")]
 
     return {
         "output": result.get("output", "No output generated."),

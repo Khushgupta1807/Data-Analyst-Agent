@@ -290,7 +290,7 @@ if uploaded_file is not None:
                         o1, o2, o3, o4, o5, o6 = st.columns(6)
                         with o1:
                             st.markdown(f"""<div class="token-card">
-                                <div class="token-value" style="color:#ff6b6b;text-decoration:line-through;">{raw_tk:,}</div>
+                                <div class="token-value" style="color:#ff6b6b;">{raw_tk:,}</div>
                                 <div class="token-label">Before</div>
                             </div>""", unsafe_allow_html=True)
                         with o2:
@@ -333,28 +333,30 @@ if uploaded_file is not None:
                         charts = result.get("charts", [])
 
                         if charts:
-                            # 2-column layout for first 2 charts
-                            if len(charts) >= 2:
-                                left, right = st.columns(2)
-                                with left:
-                                    if os.path.exists(charts[0]):
-                                        with open(charts[0], "r", encoding="utf-8") as f:
+                            # display charts in pairs (2-column grid)
+                            for i in range(0, len(charts), 2):
+                                if i + 1 < len(charts):
+                                    # two charts side by side
+                                    left, right = st.columns(2)
+                                    with left:
+                                        if os.path.exists(charts[i]):
+                                            with open(charts[i], "r", encoding="utf-8") as f:
+                                                st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+                                                components.html(f.read(), height=400, scrolling=False)
+                                                st.markdown('</div>', unsafe_allow_html=True)
+                                    with right:
+                                        if os.path.exists(charts[i + 1]):
+                                            with open(charts[i + 1], "r", encoding="utf-8") as f:
+                                                st.markdown('<div class="chart-box">', unsafe_allow_html=True)
+                                                components.html(f.read(), height=400, scrolling=False)
+                                                st.markdown('</div>', unsafe_allow_html=True)
+                                else:
+                                    # last chart full width if odd number
+                                    if os.path.exists(charts[i]):
+                                        with open(charts[i], "r", encoding="utf-8") as f:
                                             st.markdown('<div class="chart-box">', unsafe_allow_html=True)
                                             components.html(f.read(), height=400, scrolling=False)
                                             st.markdown('</div>', unsafe_allow_html=True)
-                                with right:
-                                    if os.path.exists(charts[1]):
-                                        with open(charts[1], "r", encoding="utf-8") as f:
-                                            st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-                                            components.html(f.read(), height=400, scrolling=False)
-                                            st.markdown('</div>', unsafe_allow_html=True)
-
-                            # 3rd chart full width
-                            if len(charts) >= 3 and os.path.exists(charts[2]):
-                                with open(charts[2], "r", encoding="utf-8") as f:
-                                    st.markdown('<div class="chart-box">', unsafe_allow_html=True)
-                                    components.html(f.read(), height=400, scrolling=False)
-                                    st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             st.warning("No charts were generated.")
 
