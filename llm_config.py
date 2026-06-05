@@ -1,58 +1,79 @@
 """
-LLM config — picks up Groq if the API key is available,
-otherwise tries Ollama as a fallback.
+LLM config — supports multiple providers.
+Pass in a provider name and API key, get back a LangChain LLM.
 """
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-_cached_llm = None
-_cached_name = None
-
-
-def get_llm():
-    """Return a configured LLM instance. Caches after first call."""
-    global _cached_llm, _cached_name
-
-    if _cached_llm is not None:
-        return _cached_llm, _cached_name
-
-    # try groq first (cloud, fast)
-    groq_key = os.environ.get("GROQ_API_KEY")
-    if groq_key:
-        try:
-            from langchain_groq import ChatGroq
-            llm = ChatGroq(
-                model="llama-3.3-70b-versatile",
-                api_key=groq_key,
-                temperature=0,
-            )
-            name = "Groq Cloud (llama-3.3-70b-versatile)"
-            print(f"[OK] LLM Active: {name}")
-            _cached_llm, _cached_name = llm, name
-            return llm, name
-        except Exception as e:
-            print(f"[WARN] Groq failed: {e}, trying Ollama...")
-
-    # fallback to local ollama
-    print("[INFO] No GROQ_API_KEY, trying Ollama...")
-    try:
-        from langchain_ollama import ChatOllama
-        llm = ChatOllama(model="llama3.2:1b", temperature=0)
-        name = "Ollama Local (llama3.2:1b)"
-        print(f"[OK] LLM Active: {name}")
-        _cached_llm, _cached_name = llm, name
-        return llm, name
-    except Exception as e:
-        print(f"[ERROR] Ollama failed too: {e}")
-
-    raise RuntimeError(
-        "No LLM available — set GROQ_API_KEY or install Ollama"
-    )
+PROVIDERS = {
+    "Groq": {
+        "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+        "default": "llama-3.3-70b-versatile",
+        "key_prefix": "gsk_",
+        "env_var": "GROQ_API_KEY",
+    },
+    "OpenAI": {
+        "models": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+        "default": "gpt-4o-mini",
+        "key_prefix": "sk-",
+        "env_var": "OPENAI_API_KEY",
+    },
+    "Google Gemini": {
+        "models": ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"],
+        "default": "gemini-2.0-flash",
+        "key_prefix": "AI",
+        "env_var": "GOOGLE_API_KEY",
+    },
+    "Anthropic": {
+        "models": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"],
+        "default": "claude-sonnet-4-20250514",
+        "key_prefix": "sk-ant-",
+        "env_var": "ANTHROPIC_API_KEY",
+    },
+}
 
 
-if __name__ == "__main__":
-    llm, name = get_llm()
-    print(f"Ready: {name}")
+def get_llm(provider, api_key, model=None):
+    """
+    Create a LangChain chat model for the given provider.
+    Returns (llm, display_name) tuple.
+    """
+    if not api_key:
+        raise ValueError("API key is required")
+
+    config = PROVIDERS.get(provider)
+    if not config:
+        raise ValueError(f"Unknown provider: {provider}")
+
+    model_name = model or config["default"]
+
+    if provider == "Groq":
+        from langchain_groq import ChatGroq
+        llm = ChatGroq(model=model_name, api_key=api_key, temperature=0)
+
+    elif provider == "OpenAI":
+        from langchain_openai import ChatOpenAI
+        llm = ChatOpenAI(model=model_name, api_key=api_key, temperature=0)
+
+    elif provider == "Google Gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=api_key, temperature=0)
+
+    elif provider == "Anthropic":
+        from langchain_anthropic import ChatAnthropic
+        llm = ChatAnthropic(model=model_name, api_key=api_key, temperature=0)
+
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
+
+    display_name = f"{provider} ({model_name})"
+    print(f"[OK] LLM Active: {display_name}")
+    return llm, display_name
+
+
+def detect_provider(api_key):
+    """Try to guess the provider from the key prefix."""
+    if not api_key:
+        return None
+    for name, config in PROVIDERS.items():
+        if api_key.startswith(config["key_prefix"]):
+            return name
+    return None

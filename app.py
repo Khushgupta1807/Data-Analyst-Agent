@@ -1,5 +1,5 @@
 """
-Streamlit app — upload CSV, run the agent, see charts + report + token stats.
+Streamlit app — upload CSV, pick your LLM provider, run the agent.
 """
 
 import os
@@ -7,7 +7,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 
-# page config
 st.set_page_config(
     page_title="Data Analyst Agent",
     page_icon="📊",
@@ -15,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# styling
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -134,26 +132,41 @@ st.markdown("""
 st.markdown("""
 <div class="main-header">
     <h1>📊 Data Analyst Agent</h1>
-    <p>Upload a CSV and let the agent analyse it — generates charts and a written report</p>
+    <p>Upload a CSV and let the agent analyse it — works with Groq, OpenAI, Gemini, or Claude</p>
 </div>
 """, unsafe_allow_html=True)
 
-# sidebar
-with st.sidebar:
-    st.markdown("### Settings")
+# sidebar — provider selection
+from llm_config import PROVIDERS, get_llm, detect_provider
 
-    groq_key_input = st.text_input(
-        "Groq API Key",
-        value=os.environ.get("GROQ_API_KEY", ""),
-        type="password",
-        help="Free key from console.groq.com",
-        placeholder="gsk_...",
+with st.sidebar:
+    st.markdown("### LLM Provider")
+
+    provider = st.selectbox(
+        "Choose provider",
+        list(PROVIDERS.keys()),
+        index=0,
+        help="Pick which LLM to use for analysis",
     )
 
-    if groq_key_input:
-        os.environ["GROQ_API_KEY"] = groq_key_input
+    provider_config = PROVIDERS[provider]
+
+    api_key = st.text_input(
+        f"{provider} API Key",
+        type="password",
+        placeholder=f"{provider_config['key_prefix']}...",
+        help=f"Enter your {provider} API key",
+    )
+
+    model = st.selectbox(
+        "Model",
+        provider_config["models"],
+        index=0,
+    )
+
+    if api_key:
         st.markdown(
-            '<div class="llm-badge">Groq Cloud (llama-3.3-70b)</div>',
+            f'<div class="llm-badge">{provider} ({model})</div>',
             unsafe_allow_html=True,
         )
         llm_available = True
@@ -162,24 +175,27 @@ with st.sidebar:
             '<div class="llm-badge-inactive">No API Key</div>',
             unsafe_allow_html=True,
         )
-        st.warning(
-            "Enter your Groq API key above. "
-            "Get a free one at [console.groq.com](https://console.groq.com)"
+        st.info(
+            "Enter your API key above to get started."
         )
         llm_available = False
 
     st.markdown("---")
     st.markdown("### How to use")
     st.markdown("""
-    1. Paste your Groq API key
+    1. Pick a provider & paste your key
     2. Upload a CSV file
     3. Click **Analyse**
-    4. Wait for the charts + report
+    4. Get charts + report + token stats
     """)
     st.markdown("---")
-    st.markdown(
-        "Built with LangChain, Plotly, Streamlit"
-    )
+    st.markdown("### Free API keys")
+    st.markdown("""
+    - [Groq](https://console.groq.com) — free tier
+    - [OpenAI](https://platform.openai.com) — pay-as-you-go
+    - [Google Gemini](https://aistudio.google.com) — free tier
+    - [Anthropic](https://console.anthropic.com) — pay-as-you-go
+    """)
 
 # main area
 uploaded_file = st.file_uploader(
@@ -197,7 +213,6 @@ if uploaded_file is not None:
         st.markdown("### Data Preview")
         st.dataframe(df.head(), use_container_width=True)
 
-        # metric cards
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown(f"""
@@ -226,16 +241,17 @@ if uploaded_file is not None:
 
         if st.button("Analyse My Data", use_container_width=True):
             if not llm_available:
-                st.error(
-                    "No API key set. Enter your Groq key in the sidebar first."
-                )
+                st.error("No API key set. Pick a provider and enter your key in the sidebar.")
             else:
-                with st.spinner("Running agent... this takes a minute or two"):
+                with st.spinner(f"Running agent with {provider} ({model})..."):
                     try:
-                        from agent import run_agent
-                        result = run_agent(csv_path, df)
+                        # init LLM with selected provider
+                        llm, llm_name = get_llm(provider, api_key, model)
 
-                        # --- token usage & compression panel ---
+                        from agent import run_agent
+                        result = run_agent(csv_path, df, llm, llm_name)
+
+                        # token usage panel
                         st.markdown("### Token Usage & Optimization")
                         comp = result.get("compression", {})
                         tok = result.get("token_stats", {})
@@ -271,7 +287,6 @@ if uploaded_file is not None:
                             </div>
                             """, unsafe_allow_html=True)
 
-                        # compression detail in expander
                         with st.expander("Compression details"):
                             raw_tk = comp.get('raw_context_tokens', 0)
                             comp_tk = comp.get('compressed_context_tokens', 0)
@@ -286,14 +301,13 @@ if uploaded_file is not None:
                             | Compression ratio | **{comp.get('compression_pct', 0)}%** |
                             """)
 
-                            # per-step token breakdown
                             steps_data = tok.get("per_step", [])
                             if steps_data:
                                 st.markdown("**Per-step token usage:**")
                                 step_df = pd.DataFrame(steps_data)
                                 st.dataframe(step_df, use_container_width=True)
 
-                        # show charts
+                        # charts
                         st.markdown("### Charts")
                         chart_titles = [
                             "Chart 1 — Distribution",
@@ -350,8 +364,8 @@ else:
     <div style="text-align: center; padding: 3rem 1rem; color: #a0a0b8;">
         <h2 style="color: #667eea;">Upload a CSV to get started</h2>
         <p style="font-size: 1.1rem;">
-            The agent will clean the data, build 3 interactive charts,
-            and write a summary report.
+            Pick your LLM provider in the sidebar, upload a CSV,
+            and let the agent do the rest.
         </p>
     </div>
     """, unsafe_allow_html=True)
