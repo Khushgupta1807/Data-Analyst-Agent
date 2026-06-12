@@ -361,7 +361,18 @@ if uploaded_file is not None:
                         charts = result.get("charts", [])
 
                         def fix_chart_html(html_content, px_height=430):
-                            """Inject CSS to force Plotly chart to fill the iframe height."""
+                            """Inject CSS to force Plotly chart to fill the iframe, and fix invisible colors."""
+                            import re
+                            # fix near-black marker colors that are invisible on dark bg
+                            vibrant_colors = ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166", "#ff6b6b"]
+                            # replace #000001 and #000000 marker colors with vibrant alternatives
+                            color_idx = [0]
+                            def replace_black(match):
+                                color = vibrant_colors[color_idx[0] % len(vibrant_colors)]
+                                color_idx[0] += 1
+                                return match.group(0).replace(match.group(1), color)
+                            html_content = re.sub(r'"color"\s*:\s*"(#00000[01])"', replace_black, html_content)
+
                             size_fix = f"""<style>
                                 html, body {{ margin:0; padding:0; height:{px_height}px; overflow:hidden; }}
                                 .plotly-graph-div {{ height:{px_height}px !important; width:100% !important; }}

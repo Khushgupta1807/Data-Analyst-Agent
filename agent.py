@@ -78,6 +78,13 @@ YOUR TASK (follow these steps in order):
 3. Create exactly 7 Plotly charts showing the most interesting patterns.
    Use plotly.express AND plotly.graph_objects for styling.
    
+   DEFINE THIS COLOR PALETTE at the top of your code:
+   ```python
+   import plotly.express as px
+   import plotly.graph_objects as go
+   COLORS = ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166", "#ff6b6b"]
+   ```
+   
    Choose chart types that best fit the data. Use DIFFERENT types:
    - Chart 1: Donut/pie chart for composition (e.g. category distribution)
    - Chart 2: Horizontal bar chart for rankings/comparisons
@@ -85,25 +92,55 @@ YOUR TASK (follow these steps in order):
    - Chart 4: Heatmap showing correlation matrix of numeric columns
    - Chart 5: Line or area chart for trends (or grouped bar chart)
    - Chart 6: Box plot or violin plot for distribution analysis
-   - Chart 7: Treemap, sunburst, or histogram for deeper analysis
+   - Chart 7: Histogram for deeper analysis
 
-   IMPORTANT STYLING — apply this to EVERY chart:
-   ```python
-   import plotly.express as px
-   import plotly.graph_objects as go
-   
-   # After creating each figure, apply this styling:
-   fig.update_layout(
-       template="plotly_dark",
-       paper_bgcolor="rgba(30,30,47,1)",
-       plot_bgcolor="rgba(30,30,47,1)",
-       font=dict(family="Inter, sans-serif", color="#e0e0e0"),
-       title=dict(font=dict(size=18, color="white")),
-       margin=dict(l=40, r=40, t=60, b=40),
-       legend=dict(bgcolor="rgba(0,0,0,0)"),
-   )
-   # Use these colors: ["#667eea", "#764ba2", "#34e89e", "#00c9ff", "#f093fb", "#ffd166", "#ff6b6b"]
-   ```
+   ⚠️ CRITICAL STYLING RULES — YOU MUST FOLLOW ALL OF THESE:
+
+   A) For EVERY plotly.express chart, pass `color_discrete_sequence=COLORS`:
+      ```python
+      fig = px.bar(..., color_discrete_sequence=COLORS)
+      fig = px.scatter(..., color_discrete_sequence=COLORS)
+      fig = px.box(..., color_discrete_sequence=COLORS)
+      fig = px.pie(..., color_discrete_sequence=COLORS)
+      fig = px.histogram(..., color_discrete_sequence=COLORS)
+      ```
+
+   B) For EVERY graph_objects trace, set marker color explicitly:
+      ```python
+      go.Bar(marker=dict(color="#667eea"))
+      go.Scatter(line=dict(color="#667eea", width=2))
+      go.Box(marker=dict(color="#667eea"), line=dict(color="#764ba2"))
+      ```
+
+   C) NEVER use black, #000000, #000001 or any dark color for markers/bars/lines.
+      ALL data elements MUST use bright, vibrant colors from COLORS.
+
+   D) For box plots, always use the `color` parameter:
+      ```python
+      fig = px.box(df, x="category_col", y="numeric_col", color="category_col",
+                   color_discrete_sequence=COLORS)
+      ```
+
+   E) For bar charts, always use the `color` parameter:
+      ```python
+      fig = px.bar(df, x="col", y="col", color="col",
+                   color_discrete_sequence=COLORS)
+      ```
+
+   F) Apply this layout to EVERY chart after creating it:
+      ```python
+      fig.update_layout(
+          template="plotly_dark",
+          paper_bgcolor="rgba(30,30,47,1)",
+          plot_bgcolor="rgba(30,30,47,1)",
+          font=dict(family="Inter, sans-serif", color="#e0e0e0"),
+          title=dict(font=dict(size=18, color="white")),
+          margin=dict(l=40, r=40, t=60, b=40),
+          legend=dict(bgcolor="rgba(0,0,0,0)"),
+      )
+      ```
+
+   G) Give EVERY chart a descriptive title using `title="Chart Title"` in the px call.
 
    Save them as:
    ```python
