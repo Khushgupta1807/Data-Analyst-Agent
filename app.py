@@ -19,9 +19,32 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* hide streamlit defaults */
-    .stDeployButton, #MainMenu, header[data-testid="stHeader"], footer {
+    /* hide streamlit defaults — keep header so sidebar toggle works */
+    .stDeployButton, #MainMenu, footer {
         display: none !important;
+    }
+
+    /* make header transparent but keep sidebar toggle visible */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        border: none !important;
+    }
+
+    /* style the sidebar collapse/expand toggle so it's always visible */
+    button[data-testid="stSidebarCollapseButton"],
+    button[data-testid="collapsedControl"] {
+        color: #667eea !important;
+        background: rgba(30, 30, 47, 0.9) !important;
+        border: 1px solid rgba(102, 126, 234, 0.4) !important;
+        border-radius: 8px !important;
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        z-index: 999 !important;
+    }
+    button[data-testid="stSidebarCollapseButton"]:hover,
+    button[data-testid="collapsedControl"]:hover {
+        background: rgba(102, 126, 234, 0.3) !important;
+        transform: scale(1.05);
     }
 
     html, body, [class*="css"] {
